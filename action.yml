@@ -7,7 +7,6 @@ inputs:
   sourceRepo:
     description: repository to watch
     required: true
-  
 
 # Define your outputs here.
 outputs:
