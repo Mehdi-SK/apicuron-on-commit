@@ -1,5 +1,5 @@
 import * as core from '@actions/core'
-import { wait } from './wait.js'
+import * as github from '@actions/github'
 
 /**
  * The main function for the action.
@@ -8,20 +8,22 @@ import { wait } from './wait.js'
  */
 export async function run(): Promise<void> {
   try {
-    const ms: string = core.getInput('milliseconds')
-
-    // Debug logs are only output if the `ACTIONS_STEP_DEBUG` secret is true
-    core.debug(`Waiting ${ms} milliseconds ...`)
-
-    // Log the current timestamp, wait, then log the new timestamp
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
-
-    // Set outputs for other workflow steps to use
-    core.setOutput('time', new Date().toTimeString())
+    // const repository: string = core.getInput('sourceRepo')
+    const token = core.getInput('github_token', { required: true })
+    const octokit = github.getOctokit(token)
+    const sha = github.context.sha
+    const { owner, repo } = github.context.repo
+    const { data: commit } = await octokit.rest.repos.getCommit({
+      owner,
+      repo,
+      ref: sha
+    })
+    console.log(`Commit Message: ${commit.commit.message}`)
+    console.log(`Author Name: ${commit.commit.author?.name}`)
+    console.log(`Author Email: ${commit.commit.author?.email}`)
+    console.log(`Committer Name: ${commit.commit.committer?.name}`)
+    console.log(`Committer Email: ${commit.commit.committer?.email}`)
   } catch (error) {
-    // Fail the workflow run if an error occurs
     if (error instanceof Error) core.setFailed(error.message)
   }
 }

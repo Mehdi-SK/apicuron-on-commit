@@ -1,0 +1,19 @@
+name: Commit Context
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  get-commit-info:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run action
+        uses: ./
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          sourceRep: ${{ github.repository }}
