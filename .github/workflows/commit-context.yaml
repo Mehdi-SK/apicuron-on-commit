@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - dev
+      - debug
 
 jobs:
   get-commit-info:
