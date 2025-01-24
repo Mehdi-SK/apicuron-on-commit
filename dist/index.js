@@ -31231,19 +31231,23 @@ async function run() {
     try {
         // const repository: string = core.getInput('sourceRepo')
         const token = coreExports.getInput('github_token', { required: true });
+        // const apicuron_token = core.getInput('apicuron_token', { required: true })
         const octokit = githubExports.getOctokit(token);
         const sha = githubExports.context.sha;
         const { owner, repo } = githubExports.context.repo;
-        const { data: commit } = await octokit.rest.repos.getCommit({
+        const data = await octokit.rest.repos.getCommit({
             owner,
             repo,
             ref: sha
         });
-        console.log(`Commit Message: ${commit.commit.message}`);
-        console.log(`Author Name: ${commit.commit.author?.name}`);
-        console.log(`Author Email: ${commit.commit.author?.email}`);
-        console.log(`Committer Name: ${commit.commit.committer?.name}`);
-        console.log(`Committer Email: ${commit.commit.committer?.email}`);
+        // add orcid
+        // send to apicuron
+        console.log(JSON.stringify(data, null, 2));
+        // console.log(`Commit Message: ${commit.commit.message}`)
+        // console.log(`Author Name: ${commit.commit.author?.name}`)
+        // console.log(`Author Email: ${commit.commit.author?.email}`)
+        // console.log(`Committer Name: ${commit.commit.committer?.name}`)
+        // console.log(`Committer Email: ${commit.commit.committer?.email}`)
     }
     catch (error) {
         if (error instanceof Error)
