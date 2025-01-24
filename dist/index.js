@@ -27246,7 +27246,10 @@ var coreExports = requireCore();
 async function run() {
     try {
         const event = coreExports.getInput('event');
-        console.log(JSON.stringify(event, null, 2));
+        const eventJson = JSON.parse(event);
+        const commits = eventJson.commits;
+        console.log('event\n', event);
+        console.log('commits\n', commits);
         // const repository: string = core.getInput('sourceRepo')
         // const token = core.getInput('github_token', { required: true })
         // const apicuron_token = core.getInput('apicuron_token', { required: true })
