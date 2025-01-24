@@ -7,6 +7,9 @@ inputs:
   sourceRepo:
     description: repository to watch
     required: true
+  apicuron_token:
+    description: APICURON token
+    required: true
 
 # Define your outputs here.
 outputs:
