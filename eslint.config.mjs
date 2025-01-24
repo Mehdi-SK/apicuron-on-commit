@@ -74,7 +74,7 @@ export default [
       'import/no-namespace': 'off',
       'no-console': 'off',
       'no-shadow': 'off',
-      'no-unused-vars': 'off',
+      'no-unused-vars': 'on',
       'prettier/prettier': 'error'
     }
   }

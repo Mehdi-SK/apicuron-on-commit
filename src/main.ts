@@ -8,21 +8,22 @@ import * as github from '@actions/github'
  */
 export async function run(): Promise<void> {
   try {
+    const event = core.getInput('event')
+    console.log(JSON.stringify(event, null, 2))
     // const repository: string = core.getInput('sourceRepo')
-    const token = core.getInput('github_token', { required: true })
+    // const token = core.getInput('github_token', { required: true })
     // const apicuron_token = core.getInput('apicuron_token', { required: true })
-    const octokit = github.getOctokit(token)
-    const sha = github.context.sha
-    const { owner, repo } = github.context.repo
-
-    const data = await octokit.rest.repos.getCommit({
-      owner,
-      repo,
-      ref: sha
-    })
+    // const octokit = github.getOctokit(token)
+    // const sha = github.context.sha
+    // const { owner, repo } = github.context.repo
+    // const data = await octokit.rest.repos.getCommit({
+    //   owner,
+    //   repo,
+    //   ref: sha
+    // })
     // add orcid
     // send to apicuron
-    console.log(JSON.stringify(data, null, 2))
+    // console.log(JSON.stringify(data, null, 2))
     // console.log(`Commit Message: ${commit.commit.message}`)
     // console.log(`Author Name: ${commit.commit.author?.name}`)
     // console.log(`Author Email: ${commit.commit.author?.email}`)
