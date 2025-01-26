@@ -1,20 +1,22 @@
 name: apicuron-on-commit
-description: This action will push to APICURON on every commit
+description: This action will report to APICURON on every push
 author: Unipd
 
 # Define your inputs here.
 inputs:
-  sourceRepo:
-    description: repository to watch
+  GITHUB_TOKEN:
+    description: 'GitHub token'
     required: true
-  apicuron_token:
-    description: APICURON token
+  APICURON_ENDPOINT:
+    description: 'API endpoint URL'
     required: true
-
+  APICURON_TOKEN:
+    description: 'API authentication token'
+    required: true
 # Define your outputs here.
 outputs:
-  reportId:
-    description: created report id in APICURON
+  reports:
+    description: JSON array of activity logs
 
 runs:
   using: node20
