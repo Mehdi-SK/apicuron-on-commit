@@ -36,16 +36,23 @@ async function fetchUserInfo(
       throw new Error(`HTTP error! status: ${response.status}`)
     }
 
-    const data = await response.json() as { orcid_id?: string }
-    
+    const data = (await response.json()) as { orcid_id?: string }
+
     return data?.orcid_id || 'unknown'
   } catch (error) {
-    core.error(`Failed to fetch user info for ${username}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    core.error(
+      `Failed to fetch user info for ${username}: ${error instanceof Error ? error.message : 'Unknown error'}`
+    )
     return 'unknown'
   }
 }
 
-async function processCommits(userInfoConfig: UserInfoServiceConfig): Promise<Report[]> {
+async function processCommits(
+  userInfoConfig: UserInfoServiceConfig,
+  resourceId: string,
+  activityName: string,
+  league: string
+): Promise<Report[]> {
   const { payload } = github.context
   const repo = payload.repository!
   if (!payload.commits?.length) {
@@ -61,14 +68,14 @@ async function processCommits(userInfoConfig: UserInfoServiceConfig): Promise<Re
       return {
         curator_orcid: orcid,
         entity_uri: `${repo.html_url}/commit/${commit.id}`,
-        resource_id: repo.full_name?.toString() || 'unknown',
+        resource_id: resourceId,
         timestamp: commit.timestamp,
-        activity_term: 'commit',
-        league: 'default'
+        activity_term: activityName,
+        league: league
       }
     })
   )
-  return reports;
+  return reports
 }
 
 async function sendToApi(
@@ -107,8 +114,16 @@ export async function run(): Promise<void> {
       endpoint: core.getInput('REPORT_API_ENDPOINT', { required: true }),
       token: core.getInput('REPORT_API_TOKEN')
     }
-    const reports = await processCommits(userInfoConfig)
-    
+    const resourceId = core.getInput('RESOURCE_ID', { required: true })
+    const activityName = core.getInput('ACTIVITY_NAME', { required: true })
+    const league = core.getInput('LEAGUE', { required: true })
+    const reports = await processCommits(
+      userInfoConfig,
+      resourceId,
+      activityName,
+      league
+    )
+
     if (reports.length === 0) {
       core.info('No valid commits to process')
       return

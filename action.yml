@@ -19,6 +19,16 @@ inputs:
   USER_INFO_SERVICE_TOKEN:
     description: 'Authentication token for user info service'
     required: false
+  RESOURCE_ID:
+    description: 'Identifier of the resource in APICURON'
+    required: true
+  ACTIVITY_NAME:
+    description: 'APICURON Activity name to be reported'
+    required: true
+  LEAGUE:
+    description: 'APICURON League associated with the committer'
+    default: 'default'
+    required: true
 # Define your outputs here.
 outputs:
   reports:

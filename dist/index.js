@@ -31236,7 +31236,7 @@ async function fetchUserInfo(username, config) {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = await response.json();
+        const data = (await response.json());
         return data?.orcid_id || 'unknown';
     }
     catch (error) {
@@ -31244,7 +31244,7 @@ async function fetchUserInfo(username, config) {
         return 'unknown';
     }
 }
-async function processCommits(userInfoConfig) {
+async function processCommits(userInfoConfig, resourceId, activityName, league) {
     const { payload } = githubExports.context;
     const repo = payload.repository;
     if (!payload.commits?.length) {
@@ -31259,10 +31259,10 @@ async function processCommits(userInfoConfig) {
         return {
             curator_orcid: orcid,
             entity_uri: `${repo.html_url}/commit/${commit.id}`,
-            resource_id: repo.full_name?.toString() || 'unknown',
+            resource_id: resourceId,
             timestamp: commit.timestamp,
-            activity_term: 'commit',
-            league: 'default'
+            activity_term: activityName,
+            league: league
         };
     }));
     return reports;
@@ -31297,7 +31297,10 @@ async function run() {
             endpoint: coreExports.getInput('REPORT_API_ENDPOINT', { required: true }),
             token: coreExports.getInput('REPORT_API_TOKEN')
         };
-        const reports = await processCommits(userInfoConfig);
+        const resourceId = coreExports.getInput('RESOURCE_ID', { required: true });
+        const activityName = coreExports.getInput('ACTIVITY_NAME', { required: true });
+        const league = coreExports.getInput('LEAGUE', { required: true });
+        const reports = await processCommits(userInfoConfig, resourceId, activityName, league);
         if (reports.length === 0) {
             coreExports.info('No valid commits to process');
             return;
