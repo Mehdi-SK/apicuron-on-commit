@@ -60,7 +60,8 @@ async function processCommits(
   userInfoConfig: UserInfoServiceConfig,
   resourceId: string,
   activityName: string,
-  league: string
+  league: string,
+  resourceUrl?: string
 ): Promise<Report[]> {
   const { payload } = github.context
   const repo = payload.repository!
@@ -81,10 +82,11 @@ async function processCommits(
         core.info(`Skipping report for ${username} - no ORCID available`)
         return null
       }
-
+      const resUrl = resourceUrl? `${resourceUrl}/${repo.html_url}` : `${repo.html_url}`
+      
       return {
         curator_orcid: orcid,
-        entity_uri: `${repo.html_url}/commit/${commit.id}`,
+        entity_uri: `${resUrl}/commit/${commit.id}`,
         resource_id: resourceId,
         timestamp: commit.timestamp,
         activity_term: activityName,
@@ -100,27 +102,42 @@ async function sendToApi(
   apiConfig: ReportApiConfig
 ): Promise<void> {
   try {
+    core.info(`Sending ${reports.length} reports to ${apiConfig.endpoint}`);
+
+    const requestBody = {
+      reports: reports,
+    };
+
     const response = await fetch(apiConfig.endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiConfig.token}`
+        'Authorization': `Bearer ${apiConfig.token}`,
+        'version': '2' 
       },
-      body: JSON.stringify({ reports })
-    })
+      body: JSON.stringify(requestBody)
+    });
+
+    const contentType = response.headers.get('content-type') || '';
+    const isJson = contentType.includes('application/json');
+    const responseBody = isJson ? await response.json() : await response.text();
 
     if (!response.ok) {
-      throw new Error(
-        `API request failed: ${response.status} ${response.statusText}`
-      )
+      core.error(`API Error: ${response.status} ${response.statusText}`);
+      core.error(`Response body: ${JSON.stringify(responseBody)}`);
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
     }
-    core.info(`Successfully sent ${reports.length} reports`)
+
+    core.info(`Successfully sent ${reports.length} reports`);
+    core.debug(`API Response: ${JSON.stringify(responseBody)}`);
   } catch (error) {
-    core.error('Failed to send reports')
-    throw error
+    core.error('Failed to send reports');
+    if (error instanceof Error) {
+      core.error(error.stack || error.message);
+    }
+    throw error;
   }
 }
-
 export async function run(): Promise<void> {
   try {
     const userInfoConfig: UserInfoServiceConfig = {
@@ -134,11 +151,13 @@ export async function run(): Promise<void> {
     const resourceId = core.getInput('RESOURCE_ID', { required: true })
     const activityName = core.getInput('ACTIVITY_NAME', { required: true })
     const league = core.getInput('LEAGUE', { required: true })
+    const resourceUrl = core.getInput('RESOURCE_URL')
     const reports = await processCommits(
       userInfoConfig,
       resourceId,
       activityName,
-      league
+      league,
+      resourceUrl
     )
 
     if (reports.length === 0) {

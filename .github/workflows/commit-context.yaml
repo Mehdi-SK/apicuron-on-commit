@@ -25,3 +25,4 @@ jobs:
           RESOURCE_ID: example_resource
           ACTIVITY_NAME: non-repellat
           LEAGUE: default
+          RESOURCE_URL: https://mortified-goldfish.biz/

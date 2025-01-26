@@ -31254,7 +31254,7 @@ async function fetchUserInfo(username, config) {
         return 'unknown';
     }
 }
-async function processCommits(userInfoConfig, resourceId, activityName, league) {
+async function processCommits(userInfoConfig, resourceId, activityName, league, resourceUrl) {
     const { payload } = githubExports.context;
     const repo = payload.repository;
     if (!payload.commits?.length) {
@@ -31271,9 +31271,10 @@ async function processCommits(userInfoConfig, resourceId, activityName, league) 
             coreExports.info(`Skipping report for ${username} - no ORCID available`);
             return null;
         }
+        const resUrl = resourceUrl ? `${resourceUrl}/${repo.html_url}` : `${repo.html_url}`;
         return {
             curator_orcid: orcid,
-            entity_uri: `${repo.html_url}/commit/${commit.id}`,
+            entity_uri: `${resUrl}/commit/${commit.id}`,
             resource_id: resourceId,
             timestamp: commit.timestamp,
             activity_term: activityName,
@@ -31284,21 +31285,35 @@ async function processCommits(userInfoConfig, resourceId, activityName, league) 
 }
 async function sendToApi(reports, apiConfig) {
     try {
+        coreExports.info(`Sending ${reports.length} reports to ${apiConfig.endpoint}`);
+        const requestBody = {
+            reports: reports,
+        };
         const response = await fetch(apiConfig.endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${apiConfig.token}`
+                'Authorization': `Bearer ${apiConfig.token}`,
+                'version': '2'
             },
-            body: JSON.stringify({ reports })
+            body: JSON.stringify(requestBody)
         });
+        const contentType = response.headers.get('content-type') || '';
+        const isJson = contentType.includes('application/json');
+        const responseBody = isJson ? await response.json() : await response.text();
         if (!response.ok) {
+            coreExports.error(`API Error: ${response.status} ${response.statusText}`);
+            coreExports.error(`Response body: ${JSON.stringify(responseBody)}`);
             throw new Error(`API request failed: ${response.status} ${response.statusText}`);
         }
         coreExports.info(`Successfully sent ${reports.length} reports`);
+        coreExports.debug(`API Response: ${JSON.stringify(responseBody)}`);
     }
     catch (error) {
         coreExports.error('Failed to send reports');
+        if (error instanceof Error) {
+            coreExports.error(error.stack || error.message);
+        }
         throw error;
     }
 }
@@ -31315,7 +31330,8 @@ async function run() {
         const resourceId = coreExports.getInput('RESOURCE_ID', { required: true });
         const activityName = coreExports.getInput('ACTIVITY_NAME', { required: true });
         const league = coreExports.getInput('LEAGUE', { required: true });
-        const reports = await processCommits(userInfoConfig, resourceId, activityName, league);
+        const resourceUrl = coreExports.getInput('RESOURCE_URL');
+        const reports = await processCommits(userInfoConfig, resourceId, activityName, league, resourceUrl);
         if (reports.length === 0) {
             coreExports.info('No valid commits to process');
             return;

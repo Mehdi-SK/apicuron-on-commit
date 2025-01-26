@@ -22,6 +22,9 @@ inputs:
   RESOURCE_ID:
     description: 'Identifier of the resource in APICURON'
     required: true
+  RESOURCE_URL:
+    description: 'URL of the repository'
+    required: false
   ACTIVITY_NAME:
     description: 'APICURON Activity name to be reported'
     required: true
