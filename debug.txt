@@ -1,3 +1,7 @@
+<<<<<<< HEAD
 hello
 it's me
 
+=======
+just a debug file
+>>>>>>> dev
