@@ -31,14 +31,23 @@ async function fetchUserInfo(
         'Content-Type': 'application/json'
       }
     })
-
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      if (response.status >= 400) {
+        core.warning(`User '${username}' won't be credited - no ORCID associated with their github account`)
+      } else {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      return 'unknown'
     }
 
     const data = (await response.json()) as { orcid_id?: string }
+    
+    if (!data?.orcid_id) {
+      core.notice(`No ORCID found for user '${username}' in API response`)
+      return 'unknown'
+    }
 
-    return data?.orcid_id || 'unknown'
+    return data.orcid_id
   } catch (error) {
     core.error(
       `Failed to fetch user info for ${username}: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -62,9 +71,17 @@ async function processCommits(
     payload.commits.map(async (commit: any) => {
       const username = commit.author?.username || commit.committer?.username
       if (!username) {
-        throw new Error('No username found in the commit')
+        core.warning(`Skipping commit ${commit.id} - no username associated`)
+        return null
       }
+
       const orcid = await fetchUserInfo(username, userInfoConfig)
+      
+      if (orcid === 'unknown') {
+        core.info(`Skipping report for ${username} - no ORCID available`)
+        return null
+      }
+
       return {
         curator_orcid: orcid,
         entity_uri: `${repo.html_url}/commit/${commit.id}`,
@@ -75,7 +92,7 @@ async function processCommits(
       }
     })
   )
-  return reports
+  return reports.filter((report): report is Report => report !== null)
 }
 
 async function sendToApi(

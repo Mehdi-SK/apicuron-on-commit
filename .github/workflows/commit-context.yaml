@@ -23,5 +23,5 @@ jobs:
           USER_INFO_SERVICE_ENDPOINT: ${{ secrets.USER_INFO_SERVICE_ENDPOINT }}
           USER_INFO_SERVICE_TOKEN: ${{ secrets.USER_INFO_SERVICE_TOKEN }}
           RESOURCE_ID: example_resource
-          ACTIVITY_NAME: example_activity
+          ACTIVITY_NAME: non-repellat
           LEAGUE: default

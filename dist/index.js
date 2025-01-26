@@ -31234,10 +31234,20 @@ async function fetchUserInfo(username, config) {
             }
         });
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            if (response.status >= 400) {
+                coreExports.warning(`User '${username}' won't be credited - no ORCID associated with their github account`);
+            }
+            else {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return 'unknown';
         }
         const data = (await response.json());
-        return data?.orcid_id || 'unknown';
+        if (!data?.orcid_id) {
+            coreExports.notice(`No ORCID found for user '${username}' in API response`);
+            return 'unknown';
+        }
+        return data.orcid_id;
     }
     catch (error) {
         coreExports.error(`Failed to fetch user info for ${username}: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -31253,9 +31263,14 @@ async function processCommits(userInfoConfig, resourceId, activityName, league) 
     const reports = await Promise.all(payload.commits.map(async (commit) => {
         const username = commit.author?.username || commit.committer?.username;
         if (!username) {
-            throw new Error('No username found in the commit');
+            coreExports.warning(`Skipping commit ${commit.id} - no username associated`);
+            return null;
         }
         const orcid = await fetchUserInfo(username, userInfoConfig);
+        if (orcid === 'unknown') {
+            coreExports.info(`Skipping report for ${username} - no ORCID available`);
+            return null;
+        }
         return {
             curator_orcid: orcid,
             entity_uri: `${repo.html_url}/commit/${commit.id}`,
@@ -31265,7 +31280,7 @@ async function processCommits(userInfoConfig, resourceId, activityName, league) 
             league: league
         };
     }));
-    return reports;
+    return reports.filter((report) => report !== null);
 }
 async function sendToApi(reports, apiConfig) {
     try {
