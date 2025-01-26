@@ -64,7 +64,7 @@ async function sendToApi(
 export async function run(): Promise<void> {
   try {
     const apiConfig: ApiConfig = {
-      endpoint: core.getInput('API_ENDPOINT', { required: true }),
+      endpoint: core.getInput('APICURON_ENDPOINT', { required: true }),
       token: core.getInput('APICURON_TOKEN') || ''
     }
     const reports = processCommits()
