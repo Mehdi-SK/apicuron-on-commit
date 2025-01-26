@@ -22,7 +22,7 @@ function processCommits(): Report[] {
     payload.commits?.map((commit: any) => ({
       curator_orcid: commit.author?.username || 'unknown',
       entity_uri: `${repo.html_url}/commit/${commit.id}`,
-      resource_id: repo.id.toString(),
+      resource_id: repo.full_name?.toString(),
       timestamp: commit.timestamp,
       activity_term: 'commit',
       league: 'default'
