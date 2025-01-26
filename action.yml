@@ -7,12 +7,18 @@ inputs:
   GITHUB_TOKEN:
     description: 'GitHub token'
     required: true
-  APICURON_ENDPOINT:
-    description: 'API endpoint URL'
+  REPORT_API_ENDPOINT:
+    description: 'Endpoint for sending final reports'
     required: true
-  APICURON_TOKEN:
-    description: 'API authentication token'
+  REPORT_API_TOKEN:
+    description: 'Authentication token for report API'
+    required: false
+  USER_INFO_SERVICE_ENDPOINT:
+    description: 'Endpoint for user information lookup'
     required: true
+  USER_INFO_SERVICE_TOKEN:
+    description: 'Authentication token for user info service'
+    required: false
 # Define your outputs here.
 outputs:
   reports:

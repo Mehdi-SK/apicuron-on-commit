@@ -1,6 +1,10 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-interface ApiConfig {
+interface ReportApiConfig {
+  endpoint: string
+  token: string
+}
+interface UserInfoServiceConfig {
   endpoint: string
   token: string
 }
@@ -12,27 +16,64 @@ interface Report {
   activity_term: string
   league: string
 }
-function processCommits(): Report[] {
+
+async function fetchUserInfo(
+  username: string,
+  config: UserInfoServiceConfig
+): Promise<string> {
+  try {
+    const url = new URL(config.endpoint)
+    url.searchParams.append('profileName', username)
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        Authorization: `tokenKey ${config.token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json() as { orcid_id?: string }
+    
+    return data?.orcid_id || 'unknown'
+  } catch (error) {
+    core.error(`Failed to fetch user info for ${username}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    return 'unknown'
+  }
+}
+
+async function processCommits(userInfoConfig: UserInfoServiceConfig): Promise<Report[]> {
   const { payload } = github.context
   const repo = payload.repository!
-  if (!payload.commits) {
+  if (!payload.commits?.length) {
     throw new Error('No commits found in the payload')
   }
-  return (
-    payload.commits?.map((commit: any) => ({
-      curator_orcid: commit.author?.username || 'unknown',
-      entity_uri: `${repo.html_url}/commit/${commit.id}`,
-      resource_id: repo.full_name?.toString(),
-      timestamp: commit.timestamp,
-      activity_term: 'commit',
-      league: 'default'
-    })) || []
+  const reports = await Promise.all(
+    payload.commits.map(async (commit: any) => {
+      const username = commit.author?.username || commit.committer?.username
+      if (!username) {
+        throw new Error('No username found in the commit')
+      }
+      const orcid = await fetchUserInfo(username, userInfoConfig)
+      return {
+        curator_orcid: orcid,
+        entity_uri: `${repo.html_url}/commit/${commit.id}`,
+        resource_id: repo.full_name?.toString() || 'unknown',
+        timestamp: commit.timestamp,
+        activity_term: 'commit',
+        league: 'default'
+      }
+    })
   )
+  return reports;
 }
 
 async function sendToApi(
   reports: Report[],
-  apiConfig: ApiConfig
+  apiConfig: ReportApiConfig
 ): Promise<void> {
   try {
     const response = await fetch(apiConfig.endpoint, {
@@ -49,33 +90,32 @@ async function sendToApi(
         `API request failed: ${response.status} ${response.statusText}`
       )
     }
-
-    core.info(`Successfully sent ${reports.length} reports to API`)
+    core.info(`Successfully sent ${reports.length} reports`)
   } catch (error) {
-    core.error('Failed to send reports to API')
+    core.error('Failed to send reports')
     throw error
   }
 }
-/**
- * The main function for the action.
- *
- * @returns Resolves when the action is complete.
- */
+
 export async function run(): Promise<void> {
   try {
-    const apiConfig: ApiConfig = {
-      endpoint: core.getInput('APICURON_ENDPOINT', { required: true }),
-      token: core.getInput('APICURON_TOKEN') || ''
+    const userInfoConfig: UserInfoServiceConfig = {
+      endpoint: core.getInput('USER_INFO_SERVICE_ENDPOINT', { required: true }),
+      token: core.getInput('USER_INFO_SERVICE_TOKEN')
     }
-    const reports = processCommits()
+    const reportApiConfig: ReportApiConfig = {
+      endpoint: core.getInput('REPORT_API_ENDPOINT', { required: true }),
+      token: core.getInput('REPORT_API_TOKEN')
+    }
+    const reports = await processCommits(userInfoConfig)
+    
     if (reports.length === 0) {
-      core.info('No commits to process')
+      core.info('No valid commits to process')
       return
     }
-    console.log(JSON.stringify(reports))
-    console.log(apiConfig)
-    await sendToApi(reports, apiConfig)
-    core.setOutput('reports', JSON.stringify(reports))
+    console.log(JSON.stringify(reports, null, 2))
+    await sendToApi(reports, reportApiConfig)
+    core.setOutput('reports sent:', JSON.stringify(reports))
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }
