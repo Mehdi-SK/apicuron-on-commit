@@ -1,6 +1,61 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
+interface ApiConfig {
+  endpoint: string
+  token: string
+}
+interface Report {
+  curator_orcid: string
+  entity_uri: string
+  resource_id: string
+  timestamp: string
+  activity_term: string
+  league: string
+}
+function processCommits(): Report[] {
+  const { payload } = github.context
+  const repo = payload.repository!
+  if (!payload.commits) {
+    throw new Error('No commits found in the payload')
+  }
+  return (
+    payload.commits?.map((commit: any) => ({
+      curator_orcid: commit.author?.username || 'unknown',
+      entity_uri: `${repo.html_url}/commit/${commit.id}`,
+      resource_id: repo.id.toString(),
+      timestamp: commit.timestamp,
+      activity_term: 'commit',
+      league: 'default'
+    })) || []
+  )
+}
 
+async function sendToApi(
+  reports: Report[],
+  apiConfig: ApiConfig
+): Promise<void> {
+  try {
+    const response = await fetch(apiConfig.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiConfig.token}`
+      },
+      body: JSON.stringify({ reports })
+    })
+
+    if (!response.ok) {
+      throw new Error(
+        `API request failed: ${response.status} ${response.statusText}`
+      )
+    }
+
+    core.info(`Successfully sent ${reports.length} reports to API`)
+  } catch (error) {
+    core.error('Failed to send reports to API')
+    throw error
+  }
+}
 /**
  * The main function for the action.
  *
@@ -8,27 +63,18 @@ import * as github from '@actions/github'
  */
 export async function run(): Promise<void> {
   try {
-    const event = core.getInput('event')
-    console.log(JSON.stringify(event, null, 2))
-    // const repository: string = core.getInput('sourceRepo')
-    // const token = core.getInput('github_token', { required: true })
-    // const apicuron_token = core.getInput('apicuron_token', { required: true })
-    // const octokit = github.getOctokit(token)
-    // const sha = github.context.sha
-    // const { owner, repo } = github.context.repo
-    // const data = await octokit.rest.repos.getCommit({
-    //   owner,
-    //   repo,
-    //   ref: sha
-    // })
-    // add orcid
-    // send to apicuron
-    // console.log(JSON.stringify(data, null, 2))
-    // console.log(`Commit Message: ${commit.commit.message}`)
-    // console.log(`Author Name: ${commit.commit.author?.name}`)
-    // console.log(`Author Email: ${commit.commit.author?.email}`)
-    // console.log(`Committer Name: ${commit.commit.committer?.name}`)
-    // console.log(`Committer Email: ${commit.commit.committer?.email}`)
+    const apiConfig: ApiConfig = {
+      endpoint: core.getInput('API_ENDPOINT', { required: true }),
+      token: core.getInput('API_TOKEN', { required: true })
+    }
+    const reports = processCommits()
+    if (reports.length === 0) {
+      core.info('No commits to process')
+      return
+    }
+
+    await sendToApi(reports, apiConfig)
+    core.setOutput('reports', JSON.stringify(reports))
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }
