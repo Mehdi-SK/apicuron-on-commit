@@ -72,8 +72,9 @@ export async function run(): Promise<void> {
       core.info('No commits to process')
       return
     }
-
-    await sendToApi(reports, apiConfig)
+    console.log(JSON.stringify(reports))
+    console.log(apiConfig)
+    // await sendToApi(reports, apiConfig)
     core.setOutput('reports', JSON.stringify(reports))
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)

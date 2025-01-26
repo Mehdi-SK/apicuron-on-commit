@@ -14,9 +14,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Run action
+      - name: Push to APICURON
         uses: ./
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          sourceRep: ${{ github.repository }}
-          event: '${{ toJSON(github.event)}}'
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          API_ENDPOINT: 'https://www.example.com/api/reports'
+          API_TOKEN: ${{ secrets.API_TOKEN }}
