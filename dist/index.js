@@ -31222,7 +31222,7 @@ function requireGithub () {
 
 var githubExports = requireGithub();
 
-async function fetchOrcid(username, config) {
+async function fetchUserInfo(username, config) {
     try {
         const url = new URL(config.endpoint);
         url.searchParams.append('profileName', username);
@@ -31237,38 +31237,35 @@ async function fetchOrcid(username, config) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        if (!data?.orcid_id) {
-            throw new Error('No ORCID ID found in response');
-        }
-        return data.orcid_id;
+        return data?.orcid_id || 'unknown';
     }
     catch (error) {
-        coreExports.error(`Failed to fetch ORCID for ${username}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        coreExports.error(`Failed to fetch user info for ${username}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         return 'unknown';
     }
 }
-async function processCommits(orcidConfig) {
+async function processCommits(userInfoConfig) {
     const { payload } = githubExports.context;
     const repo = payload.repository;
-    if (!payload.commits || payload.commits.length === 0) {
+    if (!payload.commits?.length) {
         throw new Error('No commits found in the payload');
     }
     const reports = await Promise.all(payload.commits.map(async (commit) => {
-        const username = commit.author?.username;
+        const username = commit.author?.username || commit.committer?.username;
         if (!username) {
-            throw new Error('No username found in commit');
+            throw new Error('No username found in the commit');
         }
-        const orcid = await fetchOrcid(username, orcidConfig);
+        const orcid = await fetchUserInfo(username, userInfoConfig);
         return {
             curator_orcid: orcid,
             entity_uri: `${repo.html_url}/commit/${commit.id}`,
-            resource_id: repo.full_name?.toString(),
+            resource_id: repo.full_name?.toString() || 'unknown',
             timestamp: commit.timestamp,
             activity_term: 'commit',
             league: 'default'
         };
     }));
-    return reports.filter(report => report.curator_orcid !== 'unknown');
+    return reports;
 }
 async function sendToApi(reports, apiConfig) {
     try {
@@ -31283,31 +31280,31 @@ async function sendToApi(reports, apiConfig) {
         if (!response.ok) {
             throw new Error(`API request failed: ${response.status} ${response.statusText}`);
         }
-        coreExports.info(`Successfully sent ${reports.length} reports to API`);
+        coreExports.info(`Successfully sent ${reports.length} reports`);
     }
     catch (error) {
-        coreExports.error('Failed to send reports to API');
+        coreExports.error('Failed to send reports');
         throw error;
     }
 }
 async function run() {
     try {
-        const orcidConfig = {
-            endpoint: coreExports.getInput('ORCID_SERVICE_ENDPOINT', { required: true }),
-            token: coreExports.getInput('ORCID_SERVICE_TOKEN', { required: true })
+        const userInfoConfig = {
+            endpoint: coreExports.getInput('USER_INFO_SERVICE_ENDPOINT', { required: true }),
+            token: coreExports.getInput('USER_INFO_SERVICE_TOKEN')
         };
-        const apiConfig = {
-            endpoint: coreExports.getInput('APICURON_ENDPOINT', { required: true }),
-            token: coreExports.getInput('APICURON_TOKEN', { required: true })
+        const reportApiConfig = {
+            endpoint: coreExports.getInput('REPORT_API_ENDPOINT', { required: true }),
+            token: coreExports.getInput('REPORT_API_TOKEN')
         };
-        const reports = await processCommits(orcidConfig);
+        const reports = await processCommits(userInfoConfig);
         if (reports.length === 0) {
             coreExports.info('No valid commits to process');
             return;
         }
-        coreExports.debug(`Sending to APICURON reports: ${JSON.stringify(reports, null, 2)}`);
-        await sendToApi(reports, apiConfig);
-        coreExports.setOutput('reports', JSON.stringify(reports, null, 2));
+        console.log(JSON.stringify(reports, null, 2));
+        await sendToApi(reports, reportApiConfig);
+        coreExports.setOutput('reports sent:', JSON.stringify(reports));
     }
     catch (error) {
         if (error instanceof Error)
