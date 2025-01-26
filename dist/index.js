@@ -31222,6 +31222,21 @@ function requireGithub () {
 
 var githubExports = requireGithub();
 
+function processCommits() {
+    const { payload } = githubExports.context;
+    const repo = payload.repository;
+    if (!payload.commits) {
+        throw new Error('No commits found in the payload');
+    }
+    return (payload.commits?.map((commit) => ({
+        curator_orcid: commit.author?.username || 'unknown',
+        entity_uri: `${repo.html_url}/commit/${commit.id}`,
+        resource_id: repo.id.toString(),
+        timestamp: commit.timestamp,
+        activity_term: 'commit',
+        league: 'default'
+    })) || []);
+}
 /**
  * The main function for the action.
  *
@@ -31229,25 +31244,19 @@ var githubExports = requireGithub();
  */
 async function run() {
     try {
-        // const repository: string = core.getInput('sourceRepo')
-        const token = coreExports.getInput('github_token', { required: true });
-        // const apicuron_token = core.getInput('apicuron_token', { required: true })
-        const octokit = githubExports.getOctokit(token);
-        const sha = githubExports.context.sha;
-        const { owner, repo } = githubExports.context.repo;
-        const data = await octokit.rest.repos.getCommit({
-            owner,
-            repo,
-            ref: sha
-        });
-        // add orcid
-        // send to apicuron
-        console.log(JSON.stringify(data, null, 2));
-        // console.log(`Commit Message: ${commit.commit.message}`)
-        // console.log(`Author Name: ${commit.commit.author?.name}`)
-        // console.log(`Author Email: ${commit.commit.author?.email}`)
-        // console.log(`Committer Name: ${commit.commit.committer?.name}`)
-        // console.log(`Committer Email: ${commit.commit.committer?.email}`)
+        const apiConfig = {
+            endpoint: coreExports.getInput('API_ENDPOINT', { required: true }),
+            token: coreExports.getInput('API_TOKEN', { required: true })
+        };
+        const reports = processCommits();
+        if (reports.length === 0) {
+            coreExports.info('No commits to process');
+            return;
+        }
+        console.log(JSON.stringify(reports));
+        console.log(apiConfig);
+        // await sendToApi(reports, apiConfig)
+        coreExports.setOutput('reports', JSON.stringify(reports));
     }
     catch (error) {
         if (error instanceof Error)
