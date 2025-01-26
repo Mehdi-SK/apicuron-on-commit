@@ -31246,7 +31246,7 @@ async function run() {
     try {
         const apiConfig = {
             endpoint: coreExports.getInput('API_ENDPOINT', { required: true }),
-            token: coreExports.getInput('API_TOKEN', { required: true })
+            token: coreExports.getInput('APICURON_TOKEN') || ''
         };
         const reports = processCommits();
         if (reports.length === 0) {
