@@ -31237,6 +31237,26 @@ function processCommits() {
         league: 'default'
     })) || []);
 }
+async function sendToApi(reports, apiConfig) {
+    try {
+        const response = await fetch(apiConfig.endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${apiConfig.token}`
+            },
+            body: JSON.stringify({ reports })
+        });
+        if (!response.ok) {
+            throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+        }
+        coreExports.info(`Successfully sent ${reports.length} reports to API`);
+    }
+    catch (error) {
+        coreExports.error('Failed to send reports to API');
+        throw error;
+    }
+}
 /**
  * The main function for the action.
  *
@@ -31255,7 +31275,7 @@ async function run() {
         }
         console.log(JSON.stringify(reports));
         console.log(apiConfig);
-        // await sendToApi(reports, apiConfig)
+        await sendToApi(reports, apiConfig);
         coreExports.setOutput('reports', JSON.stringify(reports));
     }
     catch (error) {

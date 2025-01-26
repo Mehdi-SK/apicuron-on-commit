@@ -74,7 +74,7 @@ export async function run(): Promise<void> {
     }
     console.log(JSON.stringify(reports))
     console.log(apiConfig)
-    // await sendToApi(reports, apiConfig)
+    await sendToApi(reports, apiConfig)
     core.setOutput('reports', JSON.stringify(reports))
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
