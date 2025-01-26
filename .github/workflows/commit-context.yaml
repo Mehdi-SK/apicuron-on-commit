@@ -18,7 +18,7 @@ jobs:
         uses: ./
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPORT_API_ENDPOINT: https://apicuron.com/api/report
+          REPORT_API_ENDPOINT: https://dev.apicuron.com/api/reports
           REPORT_API_TOKEN: ${{ secrets.REPORT_API_TOKEN }}
           USER_INFO_SERVICE_ENDPOINT: ${{ secrets.USER_INFO_SERVICE_ENDPOINT }}
           USER_INFO_SERVICE_TOKEN: ${{ secrets.USER_INFO_SERVICE_TOKEN }}
