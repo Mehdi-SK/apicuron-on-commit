@@ -64,12 +64,14 @@ async function processCommits(
   resourceUrl?: string
 ): Promise<Report[]> {
   const { payload } = github.context
+  core.info(`Processing payload: ${JSON.stringify(payload, null, 2)}`)
   const repo = payload.repository!
   if (!payload.commits?.length) {
     throw new Error('No commits found in the payload')
   }
   const reports = await Promise.all(
     payload.commits.map(async (commit: any) => {
+      if(!commit) throw new Error('Commit is undefined or null')
       const username = commit.author?.username || commit.committer?.username
       if (!username) {
         core.warning(`Skipping commit ${commit.id} - no username associated`)
@@ -164,6 +166,8 @@ export async function run(): Promise<void> {
       core.info('No valid commits to process')
       return
     }
+    core.info(`Generated ${reports.length} reports`)
+    core.info(`sending reports to API: ${reportApiConfig.endpoint}`)
     console.log(JSON.stringify(reports, null, 2))
     await sendToApi(reports, reportApiConfig)
     core.setOutput('reports sent:', JSON.stringify(reports))

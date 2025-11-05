@@ -35,4 +35,4 @@ A GitHub Action that reports pushes to your repository to APICURON, associating 
              RESOURCE_ID: 'your-resource-id'  # e.g., repository ID
              ACTIVITY_NAME: 'commit'          # APICURON activity type
              LEAGUE: 'default'                # APICURON league
-Change
+
