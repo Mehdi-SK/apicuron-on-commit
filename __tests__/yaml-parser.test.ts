@@ -1,0 +1,150 @@
+import { it } from '@jest/globals'
+import YAML from 'yaml'
+
+// This file tests the
+describe('parser behavior on _config.yml from jekyll', () => {
+  let yamlSample: string
+  let parsedYaml: unknown
+  beforeAll(() => {
+    yamlSample = `title: ELIXIR toolkit theme
+# This appears in the html browser tab for the site title (seen mostly by search engines, not users)
+
+# topnav_title: ELIXIR toolkit theme
+# Optional: this appears on the top navigation bar next to the main_logo.svg icon
+
+# topnav_banner: "ELIXIR toolkit theme is currently under development and may change at any point - it is not meant for production use"
+# Optional: a banner message to display to users on all pages
+
+description: "Flexible Jekyll theme using bootstrap 5 as CSS framework."
+# Metadata description of the website
+
+dsw_deep_link_prefix:
+# prefix for DSW deep links to a certain question
+
+gtag:
+# Google analytics tag
+
+matomo:
+# Matomo domain where Matomo is running
+matomo_id:
+# Integer indicating the Matomo Website ID
+matomo_cookies: true
+# Boolean that determines whether a Matomo tracking cookie is used or not
+
+plausible:
+# Plausible tag
+plausible_src:
+# default: 'https://plausible.io/js/plausible.js
+
+exclude:
+  - .gitignore
+  - var/
+  - vendor
+  - Gemfile*
+  - LICENSE
+
+sass:
+    style: compressed
+
+defaults:
+# Define here page metadata attributes for all pages at once or on specific directories. More information: https://jekyllrb.com/docs/configuration/front-matter-defaults/
+  -
+    scope:
+      path: ""
+      type: "pages"
+    values:
+      permalink: /:basename
+      layout: "page"
+      sidebar: main
+
+plugins:
+  - elixir-toolkit-theme-plugins
+  - jekyll-redirect-from
+  - jekyll-seo-tag
+  - jekyll-sitemap
+  - jekyll-github-metadata
+  - jemoji
+  - webrick
+
+
+theme_variables:
+  # git_host: GitHub
+  # back_to_top: true
+  # dev-info-banner: false
+  # privacy_statement_url: /privacy
+  # github_buttons:
+  #   position: top
+  #   edit_me: true
+  #   open_issue: true
+  #   history: true
+  # datatables:
+  #   searchbuilder: false
+    # pagelength: 10
+  # headings:
+  #   related-pages: Related pages
+  #   more-information-tiles: More information
+  #   resource-table-all: Tools and resources on this page
+  #   resource-table-all-collapse: false
+  #   affiliation-tiles-page: Affiliations
+  #   contributor-minitiles-page: Contributors
+  # toc:
+  #   min_headings: 1
+  #   headings: 'h2'
+  # topnav:
+    # theme: light
+    # brand_logo: assets/img/main_logo.svg
+    # search: true
+    # github: true
+    # twitter: false
+    # bluesky: false
+    # linkedin: false
+    # fosstodon: false
+  # theme_color: 0d6efd
+  # fonts:
+  #   - url towards a font
+  # breadcrumb: false
+
+# --- Missing in gitlab: ---
+# github:
+#   repository_url: https://github.com/ELIXIR-Belgium/elixir-toolkit-theme
+#   source:
+#     branch: main`
+    parsedYaml = YAML.parse(yamlSample)
+  })
+
+  test('exclude array is a string array as expected', () => {
+    const data = parsedYaml as {
+      exclude: string[]
+    }
+
+    expect(data).toHaveProperty('exclude')
+    expect(data['exclude']).toBeDefined()
+    expect(data['exclude'].length).toBeGreaterThan(0)
+    expect(typeof data['exclude'][0]).toEqual(typeof '')
+  })
+
+  it('Defaults is the expected format', () => {
+    const data = parsedYaml as {
+      defaults: [
+        {
+          scope: {
+            path: string
+            type: string
+          }
+          values: {
+            permalink?: string
+            layout?: string
+            sidebar?: string
+          }
+        }
+      ]
+    }
+
+    expect(data).toHaveProperty('defaults')
+    expect(data.defaults).toBeDefined()
+    expect(Array.isArray(data.defaults)).toBe(true)
+    expect(data.defaults.length).toBeGreaterThan(0)
+    expect(typeof data.defaults[0]).toEqual('object')
+    console.log(JSON.stringify(data.defaults, null, 2));
+  })
+})
