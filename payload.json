@@ -5,7 +5,6 @@
   "commits": [
     {
       "id": "abc123def456",
-      "timestamp": "2025-11-04T12:34:56Z",
       "author": {
         "username": "Mehdi-SK"
       }

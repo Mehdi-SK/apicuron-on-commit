@@ -5,9 +5,9 @@ import * as core from '@actions/core'
 import { OrcidProvider } from '../orcid/orcid-provider.type.js'
 import { GithubPayload } from '../types/github.types.js'
 
-
 type CommitProcessorInput = {
   githubPayload: GithubPayload
+  apicuronResourceId: string
   apicuronActivityName: string
   apicuronLeague: string
   resourceUrl?: string
@@ -19,7 +19,13 @@ export class CommitProcessor
   constructor(orcidProvider: OrcidProvider) {
     this.orcidProvider = orcidProvider
   }
-  async process({ githubPayload, apicuronActivityName, apicuronLeague, resourceUrl }: CommitProcessorInput): Promise<Report[]> {
+  async process({
+    githubPayload,
+    apicuronResourceId,
+    apicuronActivityName,
+    apicuronLeague,
+    resourceUrl
+  }: CommitProcessorInput): Promise<Report[]> {
     // Implement the conversion logic from commit to report
     core.info(`Processing payload: ${JSON.stringify(githubPayload, null, 2)}`)
     const repo = githubPayload.repository!
@@ -45,13 +51,17 @@ export class CommitProcessor
           ? `${resourceUrl}/${repo.html_url}`
           : `${repo.html_url}`
 
+        const commitTime = commit.timestamp
+          ? new Date(commit.timestamp)
+          : new Date(Date.now() - 1000) // clamp to now - 1s
+        const timestamp = commitTime.toISOString()
         return {
           curator_orcid: orcid,
           entity_uri: `${resUrl}/commit/${commit.id}`,
-          resource_id: resourceUrl,
-          timestamp: commit.timestamp,
+          resource_id: apicuronResourceId,
           activity_term: apicuronActivityName,
-          league: apicuronLeague
+          league: apicuronLeague,
+          timestamp
         }
       })
     )
