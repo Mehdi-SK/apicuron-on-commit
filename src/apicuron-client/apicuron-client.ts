@@ -1,6 +1,6 @@
 // ...existing code...
-import * as core from '@actions/core'
 
+import { Logger } from '../logger.js'
 import { ReportApiConfig } from '../types/api-config.js'
 import { Report } from '../types/report.schema.js'
 
@@ -15,7 +15,7 @@ export class APICURONClient {
 
   async sendReports(reports: Report[]): Promise<void> {
     try {
-      core.info(`Sending ${reports.length} reports to ${this.endpoint}`)
+      Logger.info(`Sending ${reports.length} reports to ${this.endpoint}`)
 
       const requestBody = { reports }
 
@@ -36,19 +36,19 @@ export class APICURONClient {
         : await response.text()
 
       if (!response.ok) {
-        core.error(`API Error: ${response.status} ${response.statusText}`)
-        core.error(`Response body: ${JSON.stringify(responseBody)}`)
+        Logger.error(`API Error: ${response.status} ${response.statusText}`)
+        Logger.error(`Response body: ${JSON.stringify(responseBody)}`)
         throw new Error(
           `API request failed: ${response.status} ${response.statusText}`
         )
       }
 
-      core.info(`Successfully sent ${reports.length} reports`)
-      core.debug(`API Response: ${JSON.stringify(responseBody)}`)
+      Logger.info(`Successfully sent ${reports.length} reports`)
+      Logger.debug(`API Response: ${JSON.stringify(responseBody)}`)
     } catch (error) {
-      core.error('Failed to send reports')
+      Logger.error('Failed to send reports')
       if (error instanceof Error) {
-        core.error(error.stack || error.message)
+        Logger.error(error.stack || error.message)
       }
       throw error
     }
